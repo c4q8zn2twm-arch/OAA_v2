@@ -205,37 +205,40 @@ st.markdown(f"## 📈 {asset_name}")
 st.caption("Unified Manual & Automated Trading Replay")
 
 # -------------------------------------------------
-# VERIFIED ASSET INFO
+# VERIFIED ASSET INFO (SIDEBAR)
 # -------------------------------------------------
-st.markdown(f"""
-<div class="asset-box">
-<b>Verified Instrument</b><br><br>
+with st.sidebar:
+    st.markdown("### ✅ Verified Instrument")
 
-Ticker:
-<b>{symbol}</b><br>
+    st.markdown(f"""
+    <div class="asset-box">
 
-Resolved Name:
-<b>{asset_name}</b><br>
+    Ticker:
+    <b>{symbol}</b><br>
 
-Exchange:
-<b>{exchange}</b><br>
+    Resolved Name:
+    <b>{asset_name}</b><br>
 
-Asset Type:
-<b>{quote_type}</b><br>
+    Exchange:
+    <b>{exchange}</b><br>
 
-Currency:
-<b>{currency}</b><br>
+    Asset Type:
+    <b>{quote_type}</b><br>
 
-Timeframe:
-<b>{timeframe}</b>
-</div>
-""", unsafe_allow_html=True)
+    Currency:
+    <b>{currency}</b><br>
 
-if asset_name == "Unknown Asset":
-    st.warning(
-        "Unable to fully verify instrument identity. "
-        "Double-check the symbol before trading."
-    )
+    Timeframe:
+    <b>{timeframe}</b>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+    if asset_name == "Unknown Asset":
+        st.warning(
+            "Unable to fully verify instrument identity. "
+            "Double-check the symbol before trading."
+        )
 
 # -------------------------------------------------
 # CHART
