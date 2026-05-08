@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
 from datetime import datetime, timedelta
 
 # -------------------------------------------------
@@ -74,10 +75,12 @@ with st.sidebar:
     st.caption("• Futures: ES=F, NQ=F")
 
     now = datetime.now()
+
     st.markdown("### ⏱ Current Time")
     st.write(now.strftime("%Y-%m-%d %H:%M:%S"))
 
     st.markdown("### 📊 Day Type")
+
     day_type = st.selectbox(
         "Override Day Type",
         ["Initiative", "Rotational", "Neutral"]
@@ -115,7 +118,26 @@ df = pd.DataFrame({
     "Volume": 1000
 })
 
+# Plotly chart compatibility
+df["time"] = df["Date"]
+
 st.session_state.df = df
+
+# -------------------------------------------------
+# MARKET LEVELS
+# -------------------------------------------------
+opening_range = df.iloc[:30]
+
+OH = opening_range["High"].max()
+OL = opening_range["Low"].min()
+
+premarket = df.iloc[:60]
+
+PMH = premarket["High"].max()
+PML = premarket["Low"].min()
+
+PDH = df["High"].max() + 1
+PDL = df["Low"].min() - 1
 
 # -------------------------------------------------
 # HEADER
@@ -141,7 +163,11 @@ fig.add_trace(go.Candlestick(
 
 def add_level(price, label):
     if price is not None:
-        fig.add_hline(y=price, line_dash="dash", annotation_text=label)
+        fig.add_hline(
+            y=price,
+            line_dash="dash",
+            annotation_text=label
+        )
 
 add_level(OH, "OH")
 add_level(OL, "OL")
@@ -150,8 +176,13 @@ add_level(PML, "PML")
 add_level(PDH, "PDH")
 add_level(PDL, "PDL")
 
-fig.update_layout(height=520, xaxis_rangeslider_visible=False)
+fig.update_layout(
+    height=520,
+    xaxis_rangeslider_visible=False
+)
+
 st.plotly_chart(fig, use_container_width=True)
+
 # -------------------------------------------------
 # TABS
 # -------------------------------------------------
@@ -236,6 +267,7 @@ def render_journal(title, trades, key_prefix):
         return
 
     df_trades = pd.DataFrame(trades)
+
     st.dataframe(df_trades, use_container_width=True)
 
     for i in range(len(trades)):
@@ -244,14 +276,27 @@ def render_journal(title, trades, key_prefix):
 
     if st.session_state.confirm_delete:
         k, i = st.session_state.confirm_delete
+
         if k == key_prefix:
             st.warning("Confirm deletion?")
+
             c1, c2 = st.columns(2)
+
             if c1.button("Yes, delete"):
                 trades.pop(i)
                 st.session_state.confirm_delete = None
+
             if c2.button("Cancel"):
                 st.session_state.confirm_delete = None
 
-render_journal("Manual Trades", st.session_state.manual_trades, "manual")
-render_journal("Automated Trades", st.session_state.auto_trades, "auto")
+render_journal(
+    "Manual Trades",
+    st.session_state.manual_trades,
+    "manual"
+)
+
+render_journal(
+    "Automated Trades",
+    st.session_state.auto_trades,
+    "auto"
+)
