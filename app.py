@@ -184,19 +184,57 @@ except Exception as e:
     st.stop()
 
 # -------------------------------------------------
-# MARKET LEVELS
+# LEVEL CALCULATIONS
 # -------------------------------------------------
-opening_range = df.iloc[:6]
-premarket = df.iloc[:24]
+df["date"] = pd.to_datetime(df["Date"]).dt.date
+df["session"] = pd.to_datetime(df["Date"]).dt.time
 
-OH = float(opening_range["High"].max())
-OL = float(opening_range["Low"].min())
+def opening_range(df):
+    or_df = df[
+        (df["session"] >= datetime.strptime("09:30", "%H:%M").time()) &
+        (df["session"] <= datetime.strptime("09:35", "%H:%M").time())
+    ]
 
-PMH = float(premarket["High"].max())
-PML = float(premarket["Low"].min())
+    if or_df.empty:
+        return None, None
 
-PDH = float(df["High"].max())
-PDL = float(df["Low"].min())
+    return (
+        float(or_df["High"].max()),
+        float(or_df["Low"].min())
+    )
+
+def premarket_levels(df):
+    pm = df[
+        df["session"] < datetime.strptime("09:30", "%H:%M").time()
+    ]
+
+    if pm.empty:
+        return None, None
+
+    return (
+        float(pm["High"].max()),
+        float(pm["Low"].min())
+    )
+
+def prior_day_levels(df):
+    dates = sorted(df["date"].unique())
+
+    if len(dates) < 2:
+        return None, None, None
+
+    prior = df[df["date"] == dates[-2]]
+
+    return (
+        float(prior["High"].max()),
+        float(prior["Low"].min()),
+        float(prior["Open"].iloc[0])
+    )
+
+OH, OL = opening_range(df)
+
+PMH, PML = premarket_levels(df)
+
+PDH, PDL, PDO = prior_day_levels(df)
 
 # -------------------------------------------------
 # HEADER
@@ -204,6 +242,55 @@ PDL = float(df["Low"].min())
 st.markdown(f"## 📈 {asset_name}")
 st.caption("Unified Manual & Automated Trading Replay")
 
+# -------------------------------------------------
+# KEY LEVELS DISPLAY
+# -------------------------------------------------
+st.markdown(f"## 📊 {symbol.upper()} Key Levels")
+
+level_col1, level_col2, level_col3 = st.columns(3)
+
+with level_col1:
+    st.markdown(f"""
+    <div class="card">
+    <b>Opening Range</b><br><br>
+
+    OH:
+    <b>{f"{OH:.2f}" if OH is not None else "N/A"}</b><br>
+
+    OL:
+    <b>{f"{OL:.2f}" if OL is not None else "N/A"}</b>
+    </div>
+    """, unsafe_allow_html=True)
+
+with level_col2:
+    st.markdown(f"""
+    <div class="card">
+    <b>Premarket</b><br><br>
+
+    PMH:
+    <b>{f"{PMH:.2f}" if PMH is not None else "N/A"}</b><br>
+
+    PML:
+    <b>{f"{PML:.2f}" if PML is not None else "N/A"}</b>
+    </div>
+    """, unsafe_allow_html=True)
+
+with level_col3:
+    st.markdown(f"""
+    <div class="card">
+    <b>Prior Day</b><br><br>
+
+    PDH:
+    <b>{f"{PDH:.2f}" if PDH is not None else "N/A"}</b><br>
+
+    PDL:
+    <b>{f"{PDL:.2f}" if PDL is not None else "N/A"}</b><br>
+
+    PDO:
+    <b>{f"{PDO:.2f}" if PDO is not None else "N/A"}</b>
+    </div>
+    """, unsafe_allow_html=True)
+    
 # -------------------------------------------------
 # VERIFIED ASSET INFO (SIDEBAR)
 # -------------------------------------------------
@@ -286,46 +373,6 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-# -------------------------------------------------
-# LEVEL CALCULATIONS
-# -------------------------------------------------
-def opening_range(df):
-    or_df = df[(df["session"] >= time(9,30)) & (df["session"] <= time(9,35))]
-    if or_df.empty:
-        return None, None
-    return or_df["High"].max(), or_df["Low"].min()
-
-def premarket_levels(df):
-    pm = df[df["session"] < time(9,30)]
-    if pm.empty:
-        return None, None
-    return pm["High"].max(), pm["Low"].min()
-
-def prior_day_levels(df):
-    dates = sorted(df["date"].unique())
-    if len(dates) < 2:
-        return None, None, None
-    prior = df[df["date"] == dates[-2]]
-    return prior["High"].max(), prior["Low"].min(), prior["Open"].iloc[0]
-
-OH, OL = opening_range(df)
-PMH, PML = premarket_levels(df)
-PDH, PDL, PDO = prior_day_levels(df)
-
-# -------------------------------------------------
-# DISPLAY SYMBOL + LEVELS
-# -------------------------------------------------
-st.markdown(f"## **{symbol.upper()} Key Levels**")
-
-st.write({
-    "Opening High": OH,
-    "Opening Low": OL,
-    "Premarket High": PMH,
-    "Premarket Low": PML,
-    "Prior Day High": PDH,
-    "Prior Day Low": PDL,
-    "Prior Day Open": PDO
-})
 
 # -------------------------------------------------
 # TABS
