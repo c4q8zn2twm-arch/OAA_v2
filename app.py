@@ -42,6 +42,13 @@ body {
 .short { background: #da3633; color: white; }
 .rr-good { color: #2ea043; font-weight: bold; }
 .rr-bad { color: #da3633; font-weight: bold; }
+.asset-box {
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 16px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -100,18 +107,23 @@ with st.sidebar:
         )
 
 # -------------------------------------------------
-# REAL MARKET DATA
+# LOAD ASSET
 # -------------------------------------------------
 try:
-    df = yf.download(
-        symbol,
+    ticker = yf.Ticker(symbol)
+
+    info = ticker.info
+
+    asset_name = info.get("longName") or info.get("shortName") or "Unknown Asset"
+    exchange = info.get("exchange", "Unknown Exchange")
+    quote_type = info.get("quoteType", "Unknown Type")
+    currency = info.get("currency", "Unknown Currency")
+
+    df = ticker.history(
         period="5d",
-        interval="5m",
-        progress=False,
-        auto_adjust=False
+        interval="5m"
     )
 
-    # Flatten multi-index columns if needed
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
@@ -120,16 +132,16 @@ try:
     if "Datetime" in df.columns:
         df.rename(columns={"Datetime": "Date"}, inplace=True)
 
-    if "Date" not in df.columns:
-        df.rename(columns={"index": "Date"}, inplace=True)
-
     df["time"] = df["Date"]
 
-    # Ensure numeric columns
     for col in ["Open", "High", "Low", "Close"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
     df = df.dropna()
+
+    if len(df) == 0:
+        st.error("No market data returned for this symbol.")
+        st.stop()
 
     st.session_state.df = df
 
@@ -155,8 +167,38 @@ PDL = float(df["Low"].min())
 # -------------------------------------------------
 # HEADER
 # -------------------------------------------------
-st.markdown(f"## 📈 {symbol}")
+st.markdown(f"## 📈 {asset_name}")
 st.caption("Unified Manual & Automated Trading Replay")
+
+# -------------------------------------------------
+# VERIFIED ASSET INFO
+# -------------------------------------------------
+st.markdown(f"""
+<div class="asset-box">
+<b>Verified Instrument</b><br><br>
+
+Ticker:
+<b>{symbol}</b><br>
+
+Resolved Name:
+<b>{asset_name}</b><br>
+
+Exchange:
+<b>{exchange}</b><br>
+
+Asset Type:
+<b>{quote_type}</b><br>
+
+Currency:
+<b>{currency}</b>
+</div>
+""", unsafe_allow_html=True)
+
+if asset_name == "Unknown Asset":
+    st.warning(
+        "Unable to fully verify instrument identity. "
+        "Double-check the symbol before trading."
+    )
 
 # -------------------------------------------------
 # CHART
@@ -171,7 +213,7 @@ fig.add_trace(go.Candlestick(
     high=df["High"],
     low=df["Low"],
     close=df["Close"],
-    name="Price"
+    name=f"{asset_name} ({symbol})"
 ))
 
 def add_level(price, label):
@@ -190,6 +232,7 @@ add_level(PDH, "PDH")
 add_level(PDL, "PDL")
 
 fig.update_layout(
+    title=f"{asset_name} ({symbol})",
     height=520,
     xaxis_rangeslider_visible=False
 )
