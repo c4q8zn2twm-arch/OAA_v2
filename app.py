@@ -111,6 +111,10 @@ try:
         auto_adjust=False
     )
 
+    # Flatten multi-index columns if needed
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
     df = df.reset_index()
 
     if "Datetime" in df.columns:
@@ -120,6 +124,12 @@ try:
         df.rename(columns={"index": "Date"}, inplace=True)
 
     df["time"] = df["Date"]
+
+    # Ensure numeric columns
+    for col in ["Open", "High", "Low", "Close"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    df = df.dropna()
 
     st.session_state.df = df
 
@@ -131,17 +141,16 @@ except Exception as e:
 # MARKET LEVELS
 # -------------------------------------------------
 opening_range = df.iloc[:6]
-
-OH = opening_range["High"].max()
-OL = opening_range["Low"].min()
-
 premarket = df.iloc[:24]
 
-PMH = premarket["High"].max()
-PML = premarket["Low"].min()
+OH = float(opening_range["High"].max())
+OL = float(opening_range["Low"].min())
 
-PDH = df["High"].max()
-PDL = df["Low"].min()
+PMH = float(premarket["High"].max())
+PML = float(premarket["Low"].min())
+
+PDH = float(df["High"].max())
+PDL = float(df["Low"].min())
 
 # -------------------------------------------------
 # HEADER
@@ -168,7 +177,7 @@ fig.add_trace(go.Candlestick(
 def add_level(price, label):
     if price is not None:
         fig.add_hline(
-            y=price,
+            y=float(price),
             line_dash="dash",
             annotation_text=label
         )
