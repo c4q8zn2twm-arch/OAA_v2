@@ -287,6 +287,47 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 # -------------------------------------------------
+# LEVEL CALCULATIONS
+# -------------------------------------------------
+def opening_range(df):
+    or_df = df[(df["session"] >= time(9,30)) & (df["session"] <= time(9,35))]
+    if or_df.empty:
+        return None, None
+    return or_df["High"].max(), or_df["Low"].min()
+
+def premarket_levels(df):
+    pm = df[df["session"] < time(9,30)]
+    if pm.empty:
+        return None, None
+    return pm["High"].max(), pm["Low"].min()
+
+def prior_day_levels(df):
+    dates = sorted(df["date"].unique())
+    if len(dates) < 2:
+        return None, None, None
+    prior = df[df["date"] == dates[-2]]
+    return prior["High"].max(), prior["Low"].min(), prior["Open"].iloc[0]
+
+OH, OL = opening_range(df)
+PMH, PML = premarket_levels(df)
+PDH, PDL, PDO = prior_day_levels(df)
+
+# -------------------------------------------------
+# DISPLAY SYMBOL + LEVELS
+# -------------------------------------------------
+st.markdown(f"## **{symbol.upper()} Key Levels**")
+
+st.write({
+    "Opening High": OH,
+    "Opening Low": OL,
+    "Premarket High": PMH,
+    "Premarket Low": PML,
+    "Prior Day High": PDH,
+    "Prior Day Low": PDL,
+    "Prior Day Open": PDO
+})
+
+# -------------------------------------------------
 # TABS
 # -------------------------------------------------
 tab_auto, tab_manual, tab_both = st.tabs(
