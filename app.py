@@ -82,6 +82,37 @@ with st.sidebar:
     st.caption("• Crypto: BTC-USD, ETH-USD")
     st.caption("• Futures: ES=F, NQ=F")
 
+    # ---------------------------------------------
+    # TIMEFRAME SELECTOR
+    # ---------------------------------------------
+    timeframe = st.selectbox(
+        "Timeframe",
+        [
+            "1M",
+            "5M",
+            "15M",
+            "30M",
+            "1Hr",
+            "4Hr",
+            "1Week",
+            "1 Month"
+        ],
+        index=1
+    )
+
+    interval_map = {
+        "1M": ("1m", "7d"),
+        "5M": ("5m", "30d"),
+        "15M": ("15m", "60d"),
+        "30M": ("30m", "60d"),
+        "1Hr": ("60m", "730d"),
+        "4Hr": ("1h", "730d"),
+        "1Week": ("1wk", "10y"),
+        "1 Month": ("1mo", "max"),
+    }
+
+    interval, period = interval_map[timeframe]
+
     now = datetime.now()
 
     st.markdown("### ⏱ Current Time")
@@ -120,8 +151,8 @@ try:
     currency = info.get("currency", "Unknown Currency")
 
     df = ticker.history(
-        period="5d",
-        interval="5m"
+        period=period,
+        interval=interval
     )
 
     if isinstance(df.columns, pd.MultiIndex):
@@ -131,6 +162,9 @@ try:
 
     if "Datetime" in df.columns:
         df.rename(columns={"Datetime": "Date"}, inplace=True)
+
+    if "Date" not in df.columns:
+        df.rename(columns={"index": "Date"}, inplace=True)
 
     df["time"] = df["Date"]
 
@@ -190,7 +224,10 @@ Asset Type:
 <b>{quote_type}</b><br>
 
 Currency:
-<b>{currency}</b>
+<b>{currency}</b><br>
+
+Timeframe:
+<b>{timeframe}</b>
 </div>
 """, unsafe_allow_html=True)
 
@@ -232,7 +269,7 @@ add_level(PDH, "PDH")
 add_level(PDL, "PDL")
 
 fig.update_layout(
-    title=f"{asset_name} ({symbol})",
+    title=f"{asset_name} ({symbol}) - {timeframe}",
     height=520,
     xaxis_rangeslider_visible=False
 )
