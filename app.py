@@ -124,13 +124,6 @@ st.markdown(f"## 📈 {symbol}")
 st.caption("Unified Manual & Automated Trading Replay")
 
 # -------------------------------------------------
-# TABS
-# -------------------------------------------------
-tab_auto, tab_manual, tab_both = st.tabs(
-    ["🤖 Automatic", "🎮 Manual", "🧠 Combined"]
-)
-
-# -------------------------------------------------
 # CHART
 # -------------------------------------------------
 st.markdown("## Price Chart")
@@ -159,6 +152,12 @@ add_level(PDL, "PDL")
 
 fig.update_layout(height=520, xaxis_rangeslider_visible=False)
 st.plotly_chart(fig, use_container_width=True)
+# -------------------------------------------------
+# TABS
+# -------------------------------------------------
+tab_auto, tab_manual, tab_both = st.tabs(
+    ["🤖 Automatic", "🎮 Manual", "🧠 Combined"]
+)
 
 # =================================================
 # AUTOMATIC TAB
