@@ -271,7 +271,14 @@ add_level(PDL, "PDL")
 fig.update_layout(
     title=f"{asset_name} ({symbol}) - {timeframe}",
     height=520,
-    xaxis_rangeslider_visible=False
+    dragmode="zoom",
+    xaxis=dict(
+        rangeslider=dict(visible=True),
+        fixedrange=False
+    ),
+    yaxis=dict(
+        fixedrange=False
+    )
 )
 
 st.plotly_chart(fig, use_container_width=True)
