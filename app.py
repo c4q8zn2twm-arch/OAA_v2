@@ -130,6 +130,36 @@ tab_auto, tab_manual, tab_both = st.tabs(
     ["🤖 Automatic", "🎮 Manual", "🧠 Combined"]
 )
 
+# -------------------------------------------------
+# CHART
+# -------------------------------------------------
+st.markdown("## Price Chart")
+
+fig = go.Figure()
+
+fig.add_trace(go.Candlestick(
+    x=df["time"],
+    open=df["Open"],
+    high=df["High"],
+    low=df["Low"],
+    close=df["Close"],
+    name="Price"
+))
+
+def add_level(price, label):
+    if price is not None:
+        fig.add_hline(y=price, line_dash="dash", annotation_text=label)
+
+add_level(OH, "OH")
+add_level(OL, "OL")
+add_level(PMH, "PMH")
+add_level(PML, "PML")
+add_level(PDH, "PDH")
+add_level(PDL, "PDL")
+
+fig.update_layout(height=520, xaxis_rangeslider_visible=False)
+st.plotly_chart(fig, use_container_width=True)
+
 # =================================================
 # AUTOMATIC TAB
 # =================================================
