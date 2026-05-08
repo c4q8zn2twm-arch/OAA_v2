@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+import yfinance as yf
 from datetime import datetime, timedelta
 
 # -------------------------------------------------
@@ -99,45 +100,48 @@ with st.sidebar:
         )
 
 # -------------------------------------------------
-# DEMO DATA (SAFE, NO API)
+# REAL MARKET DATA
 # -------------------------------------------------
-dates = pd.date_range(
-    start=now.replace(hour=4, minute=0),
-    periods=300,
-    freq="1min"
-)
+try:
+    df = yf.download(
+        symbol,
+        period="5d",
+        interval="5m",
+        progress=False,
+        auto_adjust=False
+    )
 
-price = 100 + np.cumsum(np.random.normal(0, 0.05, size=len(dates)))
+    df = df.reset_index()
 
-df = pd.DataFrame({
-    "Date": dates,
-    "Open": price,
-    "High": price + 0.15,
-    "Low": price - 0.15,
-    "Close": price,
-    "Volume": 1000
-})
+    if "Datetime" in df.columns:
+        df.rename(columns={"Datetime": "Date"}, inplace=True)
 
-# Plotly chart compatibility
-df["time"] = df["Date"]
+    if "Date" not in df.columns:
+        df.rename(columns={"index": "Date"}, inplace=True)
 
-st.session_state.df = df
+    df["time"] = df["Date"]
+
+    st.session_state.df = df
+
+except Exception as e:
+    st.error(f"Failed to load market data: {e}")
+    st.stop()
 
 # -------------------------------------------------
 # MARKET LEVELS
 # -------------------------------------------------
-opening_range = df.iloc[:30]
+opening_range = df.iloc[:6]
 
 OH = opening_range["High"].max()
 OL = opening_range["Low"].min()
 
-premarket = df.iloc[:60]
+premarket = df.iloc[:24]
 
 PMH = premarket["High"].max()
 PML = premarket["Low"].min()
 
-PDH = df["High"].max() + 1
-PDL = df["Low"].min() - 1
+PDH = df["High"].max()
+PDL = df["Low"].min()
 
 # -------------------------------------------------
 # HEADER
@@ -217,7 +221,7 @@ with tab_auto:
 with tab_manual:
     st.markdown("### 🎮 Manual Replay")
 
-    idx = st.session_state.index
+    idx = min(st.session_state.index, len(df) - 1)
     row = df.iloc[idx]
 
     st.markdown(f"""
