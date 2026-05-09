@@ -534,7 +534,7 @@ def render_journal(title, trades, key_prefix):
             if c2.button("Cancel"):
                 st.session_state.confirm_delete = None
 
-render_journal(
+#render_journal(
     "Manual Trades",
     st.session_state.manual_trades,
     "manual"
