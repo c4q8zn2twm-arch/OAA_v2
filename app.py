@@ -498,42 +498,6 @@ else:
         use_container_width=True
     )
 
-# -------------------------------------------------
-# AUTOMATED SUMMARY CARD
-# -------------------------------------------------
-st.markdown("## 🤖 Automated Market Bias")
-
-rr_display = round(np.random.uniform(1.0, 3.0), 2)
-
-direction = np.random.choice([
-    "Long",
-    "Short"
-])
-
-rr_class = (
-    "rr-good"
-    if rr_display >= 2
-    else "rr-bad"
-)
-
-dir_class = (
-    "long"
-    if direction == "Long"
-    else "short"
-)
-
-st.markdown(f"""
-<div class="card">
-    <span class="badge {dir_class}">
-    {direction}
-    </span><br><br>
-
-    Suggested Risk:Reward →
-    <span class="{rr_class}">
-    {rr_display}
-    </span>
-</div>
-""", unsafe_allow_html=True)
 
 # -------------------------------------------------
 # JOURNALS
