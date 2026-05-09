@@ -499,99 +499,41 @@ else:
     )
 
 # -------------------------------------------------
-# TABS
+# AUTOMATED SUMMARY CARD
 # -------------------------------------------------
-tab_auto, tab_manual, tab_both = st.tabs(
-    ["🤖 Automatic", "🎮 Manual", "🧠 Combined"]
+st.markdown("## 🤖 Automated Market Bias")
+
+rr_display = round(np.random.uniform(1.0, 3.0), 2)
+
+direction = np.random.choice([
+    "Long",
+    "Short"
+])
+
+rr_class = (
+    "rr-good"
+    if rr_display >= 2
+    else "rr-bad"
 )
 
-# =================================================
-# AUTOMATIC TAB
-# =================================================
-with tab_auto:
-    st.markdown("### 🤖 Automated Suggestions")
+dir_class = (
+    "long"
+    if direction == "Long"
+    else "short"
+)
 
-    rr_display = round(np.random.uniform(0.5, 3.0), 2)
+st.markdown(f"""
+<div class="card">
+    <span class="badge {dir_class}">
+    {direction}
+    </span><br><br>
 
-    direction = np.random.choice([
-        "Long",
-        "Short"
-    ])
-
-    if rr_display >= 1:
-        rr_class = (
-            "rr-good"
-            if rr_display >= 2
-            else "rr-bad"
-        )
-
-        dir_class = (
-            "long"
-            if direction == "Long"
-            else "short"
-        )
-
-        st.markdown(f"""
-        <div class="card">
-            <span class="badge {dir_class}">
-            {direction}
-            </span><br><br>
-
-            Risk:Reward →
-            <span class="{rr_class}">
-            {rr_display}
-            </span>
-        </div>
-        """, unsafe_allow_html=True)
-
-# =================================================
-# MANUAL TAB
-# =================================================
-with tab_manual:
-    st.markdown("### 🎮 Manual Replay")
-
-    idx = min(
-        st.session_state.index,
-        len(df) - 1
-    )
-
-    row = df.iloc[idx]
-
-    st.markdown(f"""
-    <div class="card">
-    <b>{row.Date}</b><br>
-
-    O: {row.Open:.2f} |
-    H: {row.High:.2f} |
-    L: {row.Low:.2f} |
-    C: {row.Close:.2f}
-    </div>
-    """, unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        if st.button("⬅ Previous") and idx > 0:
-            st.session_state.index -= 1
-
-    with col2:
-        if st.button("Next ➡") and idx < len(df) - 1:
-            st.session_state.index += 1
-
-    with col3:
-        if st.button("🔄 Reset"):
-            st.session_state.index = 0
-            st.session_state.position = None
-
-# =================================================
-# COMBINED TAB
-# =================================================
-with tab_both:
-    st.markdown("### 🧠 Price Overview")
-
-    chart_df = df.set_index("Date")[["Close"]]
-
-    st.line_chart(chart_df)
+    Suggested Risk:Reward →
+    <span class="{rr_class}">
+    {rr_display}
+    </span>
+</div>
+""", unsafe_allow_html=True)
 
 # -------------------------------------------------
 # JOURNALS
