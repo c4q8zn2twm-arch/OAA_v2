@@ -375,6 +375,130 @@ st.plotly_chart(fig, use_container_width=True)
 
 
 # -------------------------------------------------
+# TRADE SIGNAL ENGINE
+# -------------------------------------------------
+def rr(entry, stop, target):
+    risk = abs(entry - stop)
+    reward = abs(target - entry)
+
+    return round(reward / risk, 2) if risk else 0
+
+signals = []
+
+for i in range(5, len(df)):
+    candle = df.iloc[i]
+    prev = df.iloc[i - 1]
+
+    # Initiative LONG
+    if (
+        OH is not None and
+        PDH is not None and
+        OL is not None
+    ):
+        if (
+            candle["Close"] > OH and
+            candle["Close"] > prev["High"]
+        ):
+            entry = candle["Close"]
+            stop = OL
+            target = PDH
+
+            rr_val = rr(entry, stop, target)
+
+            if rr_val >= 1:
+                signals.append({
+                    "Type": "OAA-I",
+                    "Side": "LONG",
+                    "Time": candle["time"],
+                    "Entry": round(entry, 2),
+                    "Stop": round(stop, 2),
+                    "Target": round(target, 2),
+                    "RR": rr_val,
+                    "Quality": "A+" if rr_val >= 2 else "B"
+                })
+
+    # Rotational SHORT
+    if (
+        OH is not None and
+        PDO is not None
+    ):
+        if (
+            candle["High"] > OH and
+            candle["Close"] < OH
+        ):
+            entry = candle["Close"]
+            stop = candle["High"]
+            target = PDO
+
+            rr_val = rr(entry, stop, target)
+
+            if rr_val >= 1:
+                signals.append({
+                    "Type": "OAA-R",
+                    "Side": "SHORT",
+                    "Time": candle["time"],
+                    "Entry": round(entry, 2),
+                    "Stop": round(stop, 2),
+                    "Target": round(target, 2),
+                    "RR": rr_val,
+                    "Quality": "A+" if rr_val >= 2 else "B"
+                })
+
+signals_df = pd.DataFrame(signals)
+
+# -------------------------------------------------
+# SIGNAL TABLE STYLING
+# -------------------------------------------------
+def highlight_rr(row):
+    if row["RR"] >= 2:
+        return ["background-color: #0f5132; color: white"] * len(row)
+
+    return [""] * len(row)
+
+# -------------------------------------------------
+# AUTOMATED TRADE SUGGESTIONS
+# -------------------------------------------------
+st.markdown("## 📡 Automated Trade Suggestions")
+
+if signals_df.empty:
+    st.info("No valid setups detected.")
+else:
+
+    # ---------------------------------------------
+    # DATE FILTER
+    # ---------------------------------------------
+    signals_df["Signal Date"] = pd.to_datetime(
+        signals_df["Time"]
+    ).dt.date
+
+    available_dates = sorted(
+        signals_df["Signal Date"].unique(),
+        reverse=True
+    )
+
+    selected_date = st.selectbox(
+        "View Signal History",
+        available_dates,
+        format_func=lambda x: x.strftime("%Y-%m-%d")
+    )
+
+    filtered_signals = signals_df[
+        signals_df["Signal Date"] == selected_date
+    ].copy()
+
+    filtered_signals = filtered_signals.drop(
+        columns=["Signal Date"]
+    )
+
+    st.dataframe(
+        filtered_signals.style.apply(
+            highlight_rr,
+            axis=1
+        ),
+        use_container_width=True
+    )
+
+# -------------------------------------------------
 # TABS
 # -------------------------------------------------
 tab_auto, tab_manual, tab_both = st.tabs(
@@ -387,18 +511,36 @@ tab_auto, tab_manual, tab_both = st.tabs(
 with tab_auto:
     st.markdown("### 🤖 Automated Suggestions")
 
-    rr = round(np.random.uniform(0.5, 3.0), 2)
-    direction = np.random.choice(["Long", "Short"])
+    rr_display = round(np.random.uniform(0.5, 3.0), 2)
 
-    if rr >= 1:
-        rr_class = "rr-good" if rr >= 2 else "rr-bad"
-        dir_class = "long" if direction == "Long" else "short"
+    direction = np.random.choice([
+        "Long",
+        "Short"
+    ])
+
+    if rr_display >= 1:
+        rr_class = (
+            "rr-good"
+            if rr_display >= 2
+            else "rr-bad"
+        )
+
+        dir_class = (
+            "long"
+            if direction == "Long"
+            else "short"
+        )
 
         st.markdown(f"""
         <div class="card">
-            <span class="badge {dir_class}">{direction}</span><br><br>
+            <span class="badge {dir_class}">
+            {direction}
+            </span><br><br>
+
             Risk:Reward →
-            <span class="{rr_class}">{rr}</span>
+            <span class="{rr_class}">
+            {rr_display}
+            </span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -408,12 +550,17 @@ with tab_auto:
 with tab_manual:
     st.markdown("### 🎮 Manual Replay")
 
-    idx = min(st.session_state.index, len(df) - 1)
+    idx = min(
+        st.session_state.index,
+        len(df) - 1
+    )
+
     row = df.iloc[idx]
 
     st.markdown(f"""
     <div class="card">
     <b>{row.Date}</b><br>
+
     O: {row.Open:.2f} |
     H: {row.High:.2f} |
     L: {row.Low:.2f} |
@@ -443,6 +590,7 @@ with tab_both:
     st.markdown("### 🧠 Price Overview")
 
     chart_df = df.set_index("Date")[["Close"]]
+
     st.line_chart(chart_df)
 
 # -------------------------------------------------
