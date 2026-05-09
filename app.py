@@ -535,10 +535,10 @@ def render_journal(title, trades, key_prefix):
                 st.session_state.confirm_delete = None
 
 #render_journal(
-    "Manual Trades",
-    st.session_state.manual_trades,
-    "manual"
-)
+#    "Manual Trades",
+ #   st.session_state.manual_trades,
+  #  "manual"
+#)
 
 render_journal(
     "Automated Trades",
