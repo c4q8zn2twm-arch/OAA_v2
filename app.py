@@ -252,7 +252,7 @@ level_col1, level_col2, level_col3 = st.columns(3)
 with level_col1:
     st.markdown(f"""
     <div class="card">
-    <b>Opening Range</b><br><br>
+    <b>5 Min Opening Range</b><br><br>
 
     OH:
     <b>{f"{OH:.2f}" if OH is not None else "N/A"}</b><br>
