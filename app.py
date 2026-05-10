@@ -287,21 +287,52 @@ with st.sidebar:
             unsafe_allow_html=True
         )
 # -------------------------------------------------
-# LOAD ASSET
+# CACHED MARKET DATA
 # -------------------------------------------------
-try:
+@st.cache_data(ttl=300)
+def load_market_data(symbol, period, interval):
+
     ticker = yf.Ticker(symbol)
 
     info = ticker.info
 
-    asset_name = info.get("longName") or info.get("shortName") or "Unknown Asset"
-    exchange = info.get("exchange", "Unknown Exchange")
-    quote_type = info.get("quoteType", "Unknown Type")
-    currency = info.get("currency", "Unknown Currency")
-
     df = ticker.history(
         period=period,
         interval=interval
+    )
+
+    return info, df
+
+# -------------------------------------------------
+# LOAD ASSET
+# -------------------------------------------------
+try:
+
+    info, df = load_market_data(
+        symbol,
+        period,
+        interval
+    )
+
+    asset_name = (
+        info.get("longName")
+        or info.get("shortName")
+        or "Unknown Asset"
+    )
+
+    exchange = info.get(
+        "exchange",
+        "Unknown Exchange"
+    )
+
+    quote_type = info.get(
+        "quoteType",
+        "Unknown Type"
+    )
+
+    currency = info.get(
+        "currency",
+        "Unknown Currency"
     )
 
     if isinstance(df.columns, pd.MultiIndex):
