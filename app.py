@@ -534,60 +534,80 @@ def rr(entry, stop, target):
 
 signals = []
 
-# -------------------------------------------------
-# VALID TRADE WINDOWS
-# -------------------------------------------------
-# -------------------------------------------------
-# DYNAMIC SESSION WINDOWS
-# -------------------------------------------------
-valid_trade_windows = []
-
-if asset_class in ["Equity", "Futures"]:
-
-    if exclude_lunch:
-
-        valid_trade_windows = [
-            (
-                datetime.strptime("09:30", "%H:%M").time(),
-                datetime.strptime("11:30", "%H:%M").time()
-            ),
-            (
-                datetime.strptime("13:00", "%H:%M").time(),
-                datetime.strptime("16:00", "%H:%M").time()
-            )
-        ]
-
-    else:
-
-        valid_trade_windows = [
-            (
-                datetime.strptime("09:30", "%H:%M").time(),
-                datetime.strptime("16:00", "%H:%M").time()
-            )
-        ]
-
-elif asset_class == "Forex":
-
-    valid_trade_windows = [
-        (
-            datetime.strptime("03:00", "%H:%M").time(),
-            datetime.strptime("17:00", "%H:%M").time()
-        )
-    ]
-
-else:
-    # Crypto
-    valid_trade_windows = [
-        (
-            datetime.strptime("00:00", "%H:%M").time(),
-            datetime.strptime("23:59", "%H:%M").time()
-        )
-    ]
-
 def in_valid_window(t):
-    return any(start <= t <= end for start, end in valid_trade_windows)
+    return any(
+        start <= t <= end
+        for start, end in valid_trade_windows
+    )
+
+# -------------------------------------------------
+# TRADE OUTCOME ENGINE
+# -------------------------------------------------
+def evaluate_trade_outcome(
+    df,
+    start_index,
+    side,
+    entry,
+    stop,
+    target
+):
+    outcome = "OPEN"
+    exit_price = None
+    exit_time = None
+
+    for j in range(start_index + 1, len(df)):
+
+        future_candle = df.iloc[j]
+
+        high = future_candle["High"]
+        low = future_candle["Low"]
+
+        # -----------------------------------------
+        # LONG TRADES
+        # -----------------------------------------
+        if side == "LONG":
+
+            # Stop hit first
+            if low <= stop:
+                outcome = "STOPPED"
+                exit_price = stop
+                exit_time = future_candle["time"]
+                break
+
+            # Target hit
+            if high >= target:
+                outcome = "TARGET HIT"
+                exit_price = target
+                exit_time = future_candle["time"]
+                break
+
+        # -----------------------------------------
+        # SHORT TRADES
+        # -----------------------------------------
+        elif side == "SHORT":
+
+            # Stop hit first
+            if high >= stop:
+                outcome = "STOPPED"
+                exit_price = stop
+                exit_time = future_candle["time"]
+                break
+
+            # Target hit
+            if low <= target:
+                outcome = "TARGET HIT"
+                exit_price = target
+                exit_time = future_candle["time"]
+                break
+
+    return (
+        outcome,
+        exit_price,
+        exit_time
+    )
 
 for i in range(5, len(df)):
+
     candle = df.iloc[i]
     prev = df.iloc[i - 1]
 
@@ -618,16 +638,32 @@ for i in range(5, len(df)):
             rr_val = rr(entry, stop, target)
 
             if rr_val >= 1:
-                signals.append({
-                    "Type": "OAA-I",
-                    "Side": "LONG",
-                    "Time": candle["time"],
-                    "Entry": round(entry, 2),
-                    "Stop": round(stop, 2),
-                    "Target": round(target, 2),
-                    "RR": rr_val,
-                    "Quality": "A+" if rr_val >= 2 else "B"
-                })
+                outcome, exit_price, exit_time = evaluate_trade_outcome(
+    df=df,
+    start_index=i,
+    side="LONG",
+    entry=entry,
+    stop=stop,
+    target=target
+)
+
+signals.append({
+    "Type": "OAA-I",
+    "Side": "LONG",
+    "Time": candle["time"],
+    "Entry": round(entry, 2),
+    "Stop": round(stop, 2),
+    "Target": round(target, 2),
+    "RR": rr_val,
+    "Quality": "A+" if rr_val >= 2 else "B",
+    "Outcome": outcome,
+    "Exit Price": (
+        round(exit_price, 2)
+        if exit_price is not None
+        else None
+    ),
+    "Exit Time": exit_time
+})
 
     # Rotational SHORT
     if (
@@ -645,16 +681,32 @@ for i in range(5, len(df)):
             rr_val = rr(entry, stop, target)
 
             if rr_val >= 1:
-                signals.append({
-                    "Type": "OAA-R",
-                    "Side": "SHORT",
-                    "Time": candle["time"],
-                    "Entry": round(entry, 2),
-                    "Stop": round(stop, 2),
-                    "Target": round(target, 2),
-                    "RR": rr_val,
-                    "Quality": "A+" if rr_val >= 2 else "B"
-                })
+               outcome, exit_price, exit_time = evaluate_trade_outcome(
+    df=df,
+    start_index=i,
+    side="SHORT",
+    entry=entry,
+    stop=stop,
+    target=target
+)
+
+signals.append({
+    "Type": "OAA-R",
+    "Side": "SHORT",
+    "Time": candle["time"],
+    "Entry": round(entry, 2),
+    "Stop": round(stop, 2),
+    "Target": round(target, 2),
+    "RR": rr_val,
+    "Quality": "A+" if rr_val >= 2 else "B",
+    "Outcome": outcome,
+    "Exit Price": (
+        round(exit_price, 2)
+        if exit_price is not None
+        else None
+    ),
+    "Exit Time": exit_time
+})
 
 signals_df = pd.DataFrame(signals)
 
@@ -662,8 +714,21 @@ signals_df = pd.DataFrame(signals)
 # SIGNAL TABLE STYLING
 # -------------------------------------------------
 def highlight_rr(row):
+
+    if row["Outcome"] == "TARGET HIT":
+        return [
+            "background-color: #0f5132; color: white"
+        ] * len(row)
+
+    if row["Outcome"] == "STOPPED":
+        return [
+            "background-color: #5a1a1a; color: white"
+        ] * len(row)
+
     if row["RR"] >= 2:
-        return ["background-color: #0f5132; color: white"] * len(row)
+        return [
+            "background-color: #1f3b63; color: white"
+        ] * len(row)
 
     return [""] * len(row)
 
