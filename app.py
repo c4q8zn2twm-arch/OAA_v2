@@ -522,7 +522,52 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
+# -------------------------------------------------
+# DYNAMIC SESSION WINDOWS
+# -------------------------------------------------
+valid_trade_windows = []
 
+if asset_class in ["Equity", "Futures"]:
+
+    if exclude_lunch:
+
+        valid_trade_windows = [
+            (
+                datetime.strptime("09:30", "%H:%M").time(),
+                datetime.strptime("11:30", "%H:%M").time()
+            ),
+            (
+                datetime.strptime("13:00", "%H:%M").time(),
+                datetime.strptime("16:00", "%H:%M").time()
+            )
+        ]
+
+    else:
+
+        valid_trade_windows = [
+            (
+                datetime.strptime("09:30", "%H:%M").time(),
+                datetime.strptime("16:00", "%H:%M").time()
+            )
+        ]
+
+elif asset_class == "Forex":
+
+    valid_trade_windows = [
+        (
+            datetime.strptime("03:00", "%H:%M").time(),
+            datetime.strptime("17:00", "%H:%M").time()
+        )
+    ]
+
+else:
+    # Crypto
+    valid_trade_windows = [
+        (
+            datetime.strptime("00:00", "%H:%M").time(),
+            datetime.strptime("23:59", "%H:%M").time()
+        )
+    ]
 # -------------------------------------------------
 # TRADE SIGNAL ENGINE
 # -------------------------------------------------
