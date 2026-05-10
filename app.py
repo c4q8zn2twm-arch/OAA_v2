@@ -666,7 +666,7 @@ signals.append({
 })
 
     # Rotational SHORT
-    if (
+if (
         OH is not None and
         PDO is not None
     ):
