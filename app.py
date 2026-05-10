@@ -74,7 +74,10 @@ for k, v in state_defaults.items():
 with st.sidebar:
     st.markdown("## 🔍 Market Context")
 
-    symbol = st.text_input("Symbol", value="AAPL")
+    symbol = st.text_input(
+        "Symbol",
+        value="AAPL"
+    )
 
     st.caption("Examples:")
     st.caption("• Stocks: AAPL, MSFT, TSLA")
@@ -83,23 +86,82 @@ with st.sidebar:
     st.caption("• Futures: ES=F, NQ=F")
 
     # ---------------------------------------------
-    # TIMEFRAME SELECTOR
+    # ASSET CLASS DETECTION
     # ---------------------------------------------
-    timeframe = st.selectbox(
-        "Timeframe",
-        [
+    upper_symbol = symbol.upper()
+
+    if "=F" in upper_symbol:
+        asset_class = "Futures"
+
+    elif "-USD" in upper_symbol:
+        asset_class = "Crypto"
+
+    elif "=X" in upper_symbol:
+        asset_class = "Forex"
+
+    else:
+        asset_class = "Equity"
+
+    # ---------------------------------------------
+    # TIMEFRAME OPTIONS
+    # ---------------------------------------------
+    timeframe_options = {
+        "Futures": [
             "1M",
             "5M",
             "15M",
             "30M",
             "1Hr",
             "4Hr",
+            "1Day",
+            "1Week"
+        ],
+
+        "Equity": [
+            "1M",
+            "5M",
+            "15M",
+            "30M",
+            "1Hr",
+            "4Hr",
+            "1Day",
             "1Week",
             "1 Month"
         ],
+
+        "Forex": [
+            "1M",
+            "5M",
+            "15M",
+            "30M",
+            "1Hr",
+            "4Hr",
+            "1Day",
+            "1Week"
+        ],
+
+        "Crypto": [
+            "1M",
+            "5M",
+            "15M",
+            "30M",
+            "1Hr",
+            "4Hr",
+            "1Day",
+            "1Week",
+            "1 Month"
+        ]
+    }
+
+    timeframe = st.selectbox(
+        "Timeframe",
+        timeframe_options[asset_class],
         index=1
     )
 
+    # ---------------------------------------------
+    # INTERVAL MAP
+    # ---------------------------------------------
     interval_map = {
         "1M": ("1m", "7d"),
         "5M": ("5m", "30d"),
@@ -107,27 +169,115 @@ with st.sidebar:
         "30M": ("30m", "60d"),
         "1Hr": ("60m", "730d"),
         "4Hr": ("1h", "730d"),
+        "1Day": ("1d", "10y"),
         "1Week": ("1wk", "10y"),
         "1 Month": ("1mo", "max"),
     }
 
     interval, period = interval_map[timeframe]
 
+    # ---------------------------------------------
+    # SESSION FILTERS
+    # ---------------------------------------------
+    st.markdown("### 🕒 Session Filters")
+
+    if asset_class == "Futures":
+
+        rth_only = st.checkbox(
+            "RTH Only",
+            value=True
+        )
+
+        exclude_lunch = st.checkbox(
+            "Exclude Lunch Session",
+            value=True
+        )
+
+        exclude_overnight = st.checkbox(
+            "Exclude Overnight",
+            value=True
+        )
+
+        show_low_quality_tfs = st.checkbox(
+            "Show Excluded Futures Timeframes",
+            value=False
+        )
+
+    elif asset_class == "Equity":
+
+        rth_only = st.checkbox(
+            "RTH Only",
+            value=True
+        )
+
+        exclude_lunch = st.checkbox(
+            "Exclude Lunch Session",
+            value=False
+        )
+
+        exclude_overnight = True
+        show_low_quality_tfs = True
+
+    elif asset_class == "Forex":
+
+        rth_only = False
+
+        exclude_lunch = st.checkbox(
+            "Exclude Midday Session",
+            value=False
+        )
+
+        exclude_overnight = False
+        show_low_quality_tfs = True
+
+    else:
+        # Crypto
+        rth_only = False
+        exclude_lunch = False
+        exclude_overnight = False
+        show_low_quality_tfs = True
+
+    # ---------------------------------------------
+    # FUTURES TIMEFRAME FILTERING
+    # ---------------------------------------------
+    if asset_class == "Futures":
+
+        excluded_futures_tfs = [
+            "1M"
+        ]
+
+        if (
+            not show_low_quality_tfs and
+            timeframe in excluded_futures_tfs
+        ):
+            st.warning(
+                f"{timeframe} is commonly excluded "
+                f"by futures traders due to noise."
+            )
+
     now = datetime.now()
 
     st.markdown("### ⏱ Current Time")
-    st.write(now.strftime("%Y-%m-%d %H:%M:%S"))
+    st.write(
+        now.strftime("%Y-%m-%d %H:%M:%S")
+    )
 
     st.markdown("### 📊 Day Type")
 
     day_type = st.selectbox(
         "Override Day Type",
-        ["Initiative", "Rotational", "Neutral"]
+        [
+            "Initiative",
+            "Rotational",
+            "Neutral"
+        ]
     )
 
     badge_class = (
-        "initiative" if day_type == "Initiative"
-        else "rotational" if day_type == "Rotational"
+        "initiative"
+        if day_type == "Initiative"
+        else "rotational"
+        if day_type == "Rotational"
         else ""
     )
 
@@ -136,7 +286,6 @@ with st.sidebar:
             f'<span class="badge {badge_class}">{day_type}</span>',
             unsafe_allow_html=True
         )
-
 # -------------------------------------------------
 # LOAD ASSET
 # -------------------------------------------------
@@ -385,9 +534,72 @@ def rr(entry, stop, target):
 
 signals = []
 
+# -------------------------------------------------
+# VALID TRADE WINDOWS
+# -------------------------------------------------
+# -------------------------------------------------
+# DYNAMIC SESSION WINDOWS
+# -------------------------------------------------
+valid_trade_windows = []
+
+if asset_class in ["Equity", "Futures"]:
+
+    if exclude_lunch:
+
+        valid_trade_windows = [
+            (
+                datetime.strptime("09:30", "%H:%M").time(),
+                datetime.strptime("11:30", "%H:%M").time()
+            ),
+            (
+                datetime.strptime("13:00", "%H:%M").time(),
+                datetime.strptime("16:00", "%H:%M").time()
+            )
+        ]
+
+    else:
+
+        valid_trade_windows = [
+            (
+                datetime.strptime("09:30", "%H:%M").time(),
+                datetime.strptime("16:00", "%H:%M").time()
+            )
+        ]
+
+elif asset_class == "Forex":
+
+    valid_trade_windows = [
+        (
+            datetime.strptime("03:00", "%H:%M").time(),
+            datetime.strptime("17:00", "%H:%M").time()
+        )
+    ]
+
+else:
+    # Crypto
+    valid_trade_windows = [
+        (
+            datetime.strptime("00:00", "%H:%M").time(),
+            datetime.strptime("23:59", "%H:%M").time()
+        )
+    ]
+
+def in_valid_window(t):
+    return any(start <= t <= end for start, end in valid_trade_windows)
+
 for i in range(5, len(df)):
     candle = df.iloc[i]
     prev = df.iloc[i - 1]
+
+    candle_time = pd.to_datetime(
+        candle["time"]
+    ).time()
+
+    # ---------------------------------------------
+    # IGNORE INVALID TIMES
+    # ---------------------------------------------
+    if not in_valid_window(candle_time):
+        continue
 
     # Initiative LONG
     if (
