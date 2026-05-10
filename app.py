@@ -289,7 +289,7 @@ with st.sidebar:
 # -------------------------------------------------
 # CACHED MARKET DATA
 # -------------------------------------------------
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=600)
 def load_market_data(symbol, period, interval):
 
     ticker = yf.Ticker(symbol)
