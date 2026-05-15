@@ -404,61 +404,17 @@ def load_yahoo_data(
 # -------------------------------------------------
 try:
 
-    # ---------------------------------------------
-# FUTURES BYPASS POLYGON
-# ---------------------------------------------
-if asset_class == "Futures":
-
-    data_source = "Yahoo Finance"
-
-    info, df = load_yahoo_data(
-        symbol,
-        period,
-        interval
-    )
-
-    asset_name = (
-        info.get("longName")
-        or info.get("shortName")
-        or "Unknown Asset"
-    )
-
-    exchange = info.get(
-        "exchange",
-        "Unknown Exchange"
-    )
-
-    quote_type = info.get(
-        "quoteType",
-        "Unknown Type"
-    )
-
-    currency = info.get(
-        "currency",
-        "Unknown Currency"
-    )
-
-else:
-
     data_source = "Polygon"
 
     try:
 
-        # -------------------------------------
+        # -----------------------------------------
         # PRIMARY = POLYGON
-        # -------------------------------------
+        # -----------------------------------------
         df = load_polygon_data(
             symbol,
             interval
         )
-
-        asset_name = symbol.upper()
-
-        exchange = "Polygon"
-
-        quote_type = asset_class
-
-        currency = "USD"
 
         asset_name = symbol.upper()
 
