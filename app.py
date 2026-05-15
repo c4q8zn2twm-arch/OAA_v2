@@ -861,33 +861,34 @@ for i in range(5, len(df)):
 
             rr_val = rr(entry, stop, target)
 
-            if rr_val >= 1:
-                outcome, exit_price, exit_time = evaluate_trade_outcome(
-    df=df,
-    start_index=i,
-    side="LONG",
-    entry=entry,
-    stop=stop,
-    target=target
-)
+if rr_val >= 1:
 
-signals.append({
-    "Type": "OAA-I",
-    "Side": "LONG",
-    "Time": candle["time"],
-    "Entry": round(entry, 2),
-    "Stop": round(stop, 2),
-    "Target": round(target, 2),
-    "RR": rr_val,
-    "Quality": "A+" if rr_val >= 2 else "B",
-    "Outcome": outcome,
-    "Exit Price": (
-        round(exit_price, 2)
-        if exit_price is not None
-        else None
-    ),
-    "Exit Time": exit_time
-})
+                outcome, exit_price, exit_time = evaluate_trade_outcome(
+                    df=df,
+                    start_index=i,
+                    side="LONG",
+                    entry=entry,
+                    stop=stop,
+                    target=target
+                )
+
+                signals.append({
+                    "Type": "OAA-I",
+                    "Side": "LONG",
+                    "Time": candle["time"],
+                    "Entry": round(entry, 2),
+                    "Stop": round(stop, 2),
+                    "Target": round(target, 2),
+                    "RR": rr_val,
+                    "Quality": "A+" if rr_val >= 2 else "B",
+                    "Outcome": outcome,
+                    "Exit Price": (
+                        round(exit_price, 2)
+                        if exit_price is not None
+                        else None
+                    ),
+                    "Exit Time": exit_time
+                })
 
     # Rotational SHORT
 if (
@@ -904,33 +905,34 @@ if (
 
             rr_val = rr(entry, stop, target)
 
-            if rr_val >= 1:
-               outcome, exit_price, exit_time = evaluate_trade_outcome(
-    df=df,
-    start_index=i,
-    side="SHORT",
-    entry=entry,
-    stop=stop,
-    target=target
-)
+if rr_val >= 1:
 
-signals.append({
-    "Type": "OAA-R",
-    "Side": "SHORT",
-    "Time": candle["time"],
-    "Entry": round(entry, 2),
-    "Stop": round(stop, 2),
-    "Target": round(target, 2),
-    "RR": rr_val,
-    "Quality": "A+" if rr_val >= 2 else "B",
-    "Outcome": outcome,
-    "Exit Price": (
-        round(exit_price, 2)
-        if exit_price is not None
-        else None
-    ),
-    "Exit Time": exit_time
-})
+                outcome, exit_price, exit_time = evaluate_trade_outcome(
+                    df=df,
+                    start_index=i,
+                    side="SHORT",
+                    entry=entry,
+                    stop=stop,
+                    target=target
+                )
+
+                signals.append({
+                    "Type": "OAA-R",
+                    "Side": "SHORT",
+                    "Time": candle["time"],
+                    "Entry": round(entry, 2),
+                    "Stop": round(stop, 2),
+                    "Target": round(target, 2),
+                    "RR": rr_val,
+                    "Quality": "A+" if rr_val >= 2 else "B",
+                    "Outcome": outcome,
+                    "Exit Price": (
+                        round(exit_price, 2)
+                        if exit_price is not None
+                        else None
+                    ),
+                    "Exit Time": exit_time
+                })
 
 signals_df = pd.DataFrame(signals)
 
