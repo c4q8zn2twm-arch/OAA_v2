@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import yfinance as yf
+import requests
+
 from datetime import datetime, timedelta
 
 # -------------------------------------------------
@@ -287,10 +289,104 @@ with st.sidebar:
             unsafe_allow_html=True
         )
 # -------------------------------------------------
-# CACHED MARKET DATA
+# POLYGON CONFIG
+# -------------------------------------------------
+polygon_key = st.secrets["POLYGON_API_KEY"]
+
+# -------------------------------------------------
+# POLYGON INTERVAL MAP
+# -------------------------------------------------
+polygon_interval_map = {
+    "1m": (1, "minute"),
+    "5m": (5, "minute"),
+    "15m": (15, "minute"),
+    "30m": (30, "minute"),
+    "60m": (60, "minute"),
+    "1h": (1, "hour"),
+    "1d": (1, "day"),
+    "1wk": (1, "week"),
+    "1mo": (1, "month"),
+}
+
+# -------------------------------------------------
+# POLYGON DATA LOADER
 # -------------------------------------------------
 @st.cache_data(ttl=600)
-def load_market_data(symbol, period, interval):
+def load_polygon_data(symbol, interval):
+
+    if interval not in polygon_interval_map:
+        raise Exception(
+            f"Unsupported Polygon interval: {interval}"
+        )
+
+    multiplier, timespan = polygon_interval_map[interval]
+
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=730)
+
+    polygon_symbol = symbol.upper()
+
+    # ---------------------------------------------
+    # FUTURES SYMBOL NORMALIZATION
+    # ---------------------------------------------
+    if "=F" in polygon_symbol:
+        polygon_symbol = polygon_symbol.replace("=F", "")
+
+    url = (
+        f"https://api.polygon.io/v2/aggs/ticker/"
+        f"{polygon_symbol}/range/"
+        f"{multiplier}/{timespan}/"
+        f"{start_date.strftime('%Y-%m-%d')}/"
+        f"{end_date.strftime('%Y-%m-%d')}"
+        f"?adjusted=true"
+        f"&sort=asc"
+        f"&limit=50000"
+        f"&apiKey={polygon_key}"
+    )
+
+    response = requests.get(url)
+
+    if response.status_code != 200:
+        raise Exception(
+            f"Polygon error {response.status_code}"
+        )
+
+    data = response.json()
+
+    if "results" not in data:
+        raise Exception(
+            "Polygon returned no results."
+        )
+
+    rows = []
+
+    for row in data["results"]:
+
+        rows.append({
+            "Date": pd.to_datetime(
+                row["t"],
+                unit="ms"
+            ),
+            "Open": row["o"],
+            "High": row["h"],
+            "Low": row["l"],
+            "Close": row["c"],
+            "Volume": row.get("v", 0)
+        })
+
+    df = pd.DataFrame(rows)
+
+    return df
+
+# -------------------------------------------------
+# YAHOO FALLBACK
+# -------------------------------------------------
+@st.cache_data(ttl=600)
+def load_yahoo_data(
+    symbol,
+    period,
+    interval
+):
 
     ticker = yf.Ticker(symbol)
 
@@ -304,63 +400,115 @@ def load_market_data(symbol, period, interval):
     return info, df
 
 # -------------------------------------------------
-# LOAD ASSET
+# LOAD MARKET DATA
 # -------------------------------------------------
 try:
 
-    info, df = load_market_data(
-        symbol,
-        period,
-        interval
-    )
+    data_source = "Polygon"
 
-    asset_name = (
-        info.get("longName")
-        or info.get("shortName")
-        or "Unknown Asset"
-    )
+    try:
 
-    exchange = info.get(
-        "exchange",
-        "Unknown Exchange"
-    )
+        # -----------------------------------------
+        # PRIMARY = POLYGON
+        # -----------------------------------------
+        df = load_polygon_data(
+            symbol,
+            interval
+        )
 
-    quote_type = info.get(
-        "quoteType",
-        "Unknown Type"
-    )
+        asset_name = symbol.upper()
 
-    currency = info.get(
-        "currency",
-        "Unknown Currency"
-    )
+        exchange = "Polygon"
 
+        quote_type = asset_class
+
+        currency = "USD"
+
+    except Exception as polygon_error:
+
+        # -----------------------------------------
+        # FALLBACK = YAHOO
+        # -----------------------------------------
+        data_source = "Yahoo Finance"
+
+        info, df = load_yahoo_data(
+            symbol,
+            period,
+            interval
+        )
+
+        asset_name = (
+            info.get("longName")
+            or info.get("shortName")
+            or "Unknown Asset"
+        )
+
+        exchange = info.get(
+            "exchange",
+            "Unknown Exchange"
+        )
+
+        quote_type = info.get(
+            "quoteType",
+            "Unknown Type"
+        )
+
+        currency = info.get(
+            "currency",
+            "Unknown Currency"
+        )
+
+    # ---------------------------------------------
+    # NORMALIZATION
+    # ---------------------------------------------
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
     df = df.reset_index()
 
     if "Datetime" in df.columns:
-        df.rename(columns={"Datetime": "Date"}, inplace=True)
+        df.rename(
+            columns={"Datetime": "Date"},
+            inplace=True
+        )
 
     if "Date" not in df.columns:
-        df.rename(columns={"index": "Date"}, inplace=True)
+        df.rename(
+            columns={"index": "Date"},
+            inplace=True
+        )
 
-    df["time"] = df["Date"]
+    df["time"] = pd.to_datetime(
+        df["Date"]
+    )
 
-    for col in ["Open", "High", "Low", "Close"]:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
+    for col in [
+        "Open",
+        "High",
+        "Low",
+        "Close"
+    ]:
+        df[col] = pd.to_numeric(
+            df[col],
+            errors="coerce"
+        )
 
     df = df.dropna()
 
     if len(df) == 0:
-        st.error("No market data returned for this symbol.")
+        st.error(
+            "No market data returned."
+        )
         st.stop()
 
     st.session_state.df = df
 
 except Exception as e:
-    st.error(f"Failed to load market data: {e}")
+
+    st.error(
+        f"Failed to load market data: {e}"
+    )
+
     st.stop()
 
 # -------------------------------------------------
