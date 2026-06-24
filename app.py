@@ -846,30 +846,16 @@ for i in range(5, len(df)):
         continue
 
     # Initiative LONG
-    if (
-        OH is not None and
-        PDH is not None and
-        OL is not None
-    ):
-        if (
-            candle["Close"] > OH and
-            candle["Close"] > prev["High"]
-        ):
+    if OH is not None and PDH is not None and OL is not None:
+        if candle["Close"] > OH and candle["Close"] > prev["High"]:
             entry = candle["Close"]
             stop = OL
             target = PDH
-
             rr_val = rr(entry, stop, target)
 
-        if rr_val >= 1:
-
+            if rr_val >= 1:
                 outcome, exit_price, exit_time = evaluate_trade_outcome(
-                    df=df,
-                    start_index=i,
-                    side="LONG",
-                    entry=entry,
-                    stop=stop,
-                    target=target
+                    df, i, "LONG", entry, stop, target
                 )
 
                 signals.append({
@@ -882,38 +868,21 @@ for i in range(5, len(df)):
                     "RR": rr_val,
                     "Quality": "A+" if rr_val >= 2 else "B",
                     "Outcome": outcome,
-                    "Exit Price": (
-                        round(exit_price, 2)
-                        if exit_price is not None
-                        else None
-                    ),
+                    "Exit Price": round(exit_price, 2) if exit_price is not None else None,
                     "Exit Time": exit_time
                 })
 
     # Rotational SHORT
-        if (
-        OH is not None and
-        PDO is not None
-        ):
-        if (
-            candle["High"] > OH and
-            candle["Close"] < OH
-        ):
+    if OH is not None and PDO is not None:
+        if candle["High"] > OH and candle["Close"] < OH:
             entry = candle["Close"]
             stop = candle["High"]
             target = PDO
-
             rr_val = rr(entry, stop, target)
 
-        if rr_val >= 1:
-
+            if rr_val >= 1:
                 outcome, exit_price, exit_time = evaluate_trade_outcome(
-                    df=df,
-                    start_index=i,
-                    side="SHORT",
-                    entry=entry,
-                    stop=stop,
-                    target=target
+                    df, i, "SHORT", entry, stop, target
                 )
 
                 signals.append({
@@ -926,11 +895,7 @@ for i in range(5, len(df)):
                     "RR": rr_val,
                     "Quality": "A+" if rr_val >= 2 else "B",
                     "Outcome": outcome,
-                    "Exit Price": (
-                        round(exit_price, 2)
-                        if exit_price is not None
-                        else None
-                    ),
+                    "Exit Price": round(exit_price, 2) if exit_price is not None else None,
                     "Exit Time": exit_time
                 })
 
