@@ -861,7 +861,7 @@ for i in range(5, len(df)):
 
             rr_val = rr(entry, stop, target)
 
-if rr_val >= 1:
+        if rr_val >= 1:
 
                 outcome, exit_price, exit_time = evaluate_trade_outcome(
                     df=df,
@@ -891,10 +891,10 @@ if rr_val >= 1:
                 })
 
     # Rotational SHORT
-if (
+        if (
         OH is not None and
         PDO is not None
-    ):
+        ):
         if (
             candle["High"] > OH and
             candle["Close"] < OH
@@ -905,7 +905,7 @@ if (
 
             rr_val = rr(entry, stop, target)
 
-if rr_val >= 1:
+        if rr_val >= 1:
 
                 outcome, exit_price, exit_time = evaluate_trade_outcome(
                     df=df,
