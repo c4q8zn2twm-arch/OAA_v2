@@ -863,8 +863,7 @@ for i in range(5, len(df)):
 
         if rr_val >= 1:
 
-                outcome, exit_price, exit_time = evaluate_trade_outcome
-                (
+                outcome, exit_price, exit_time = evaluate_trade_outcome(
                     df=df,
                     start_index=i,
                     side="LONG",
