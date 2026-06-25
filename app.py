@@ -324,9 +324,9 @@ def load_polygon_data(symbol, interval):
     end_date = datetime.now()
 
     if timespan in ["minute", "hour"]:
-    start_date = end_date - timedelta(days=30)
+        start_date = end_date - timedelta(days=30)
     else:
-    start_date = end_date - timedelta(days=730)
+        start_date = end_date - timedelta(days=730)
 
     polygon_symbol = symbol.upper()
 
