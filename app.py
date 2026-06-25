@@ -322,6 +322,10 @@ def load_polygon_data(symbol, interval):
     multiplier, timespan = polygon_interval_map[interval]
 
     end_date = datetime.now()
+
+    if timespan in ["minute", "hour"]:
+    start_date = end_date - timedelta(days=30)
+    else:
     start_date = end_date - timedelta(days=730)
 
     polygon_symbol = symbol.upper()
@@ -481,6 +485,7 @@ try:
     df["time"] = pd.to_datetime(
         df["Date"]
     )
+    df = df.sort_values("time")
 
     for col in [
         "Open",
@@ -510,6 +515,11 @@ except Exception as e:
     )
 
     st.stop()
+    latest_candle_time = df["time"].max()
+
+    st.caption(
+    f"Latest candle loaded: {latest_candle_time}"
+    )
 
 # -------------------------------------------------
 # LEVEL CALCULATIONS
